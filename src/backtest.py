@@ -1,4 +1,3 @@
-# src/backtest.py
 import pandas as pd
 from utils_db import read_sql
 
