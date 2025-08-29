@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from utils_email import load_email_config, send_email
 
 # 下載數據（1分鐘頻率，演示剝頭皮）
 data = yf.download("AAPL", period="5d", interval="1m")
@@ -19,6 +20,7 @@ stop_loss   = -0.002  # -0.2%
 data["signal"] = 0
 data.loc[data["ma1"] > data["ma5"], "signal"] = 1   # 多
 data.loc[data["ma1"] < data["ma5"], "signal"] = -1  # 空
+print(data[["Close", "ma1", "ma5", "signal"]].head(20))  # 检查
 
 # 計算收益
 data["ret"] = data["Close"].pct_change().fillna(0)
@@ -30,18 +32,35 @@ data["position"] = data["signal"].shift(1).fillna(0)
 data["strategy_ret"] = data["position"] * data["ret"]
 
 # 加入止盈止損（簡化：判斷單筆交易）
+# 初始化
 trades = []
 pos = 0
 entry_price = 0
 
-for i, row in data.iterrows():
-    if pos == 0 and row["signal"] != 0:  # 開倉
-        pos = row["signal"]
-        entry_price = row["Close"]
+# 載入郵件設定
+config = load_email_config()
+
+# 回測循環
+for row in data.itertuples(index=True):
+    # 開倉
+    if pos == 0 and row.signal != 0:
+        pos = row.signal
+        entry_price = row.Close
+
+        subject = "📈 New Trade Opened"
+        message = f"Signal: {pos}\nEntry Price: {entry_price}\nTime: {row.Index}"
+        send_email(subject, message, config)
+
+    # 持倉
     elif pos != 0:
-        change = (row["Close"] - entry_price) / entry_price * pos
+        change = (row.Close - entry_price) / entry_price * pos
         if change >= take_profit or change <= stop_loss:
             trades.append(change)
+
+            subject = "📉 Trade Closed"
+            message = f"Exit Price: {row.Close}\nPnL: {change:.2%}\nTime: {row.Index}"
+            send_email(subject, message, config)
+
             pos = 0
             entry_price = 0
 

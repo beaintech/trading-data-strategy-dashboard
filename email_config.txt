@@ -1,0 +1,3 @@
+sender_email=beatrixyublome@gmail.com
+sender_password=7wZZTht5d8U_Rxxb7s_4sigr
+receiver_email=blomedesign2018@gmail.com

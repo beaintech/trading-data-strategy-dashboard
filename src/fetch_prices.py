@@ -20,7 +20,6 @@
 # if __name__ == "__main__":
 #     fetch_prices(["AAPL","MSFT","NVDA","^GSPC"])
 
-# src/fetch_prices.py
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
