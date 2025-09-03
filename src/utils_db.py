@@ -6,7 +6,6 @@ from email.utils import parsedate_to_datetime
 # Database path
 DB_PATH = Path(__file__).resolve().parents[1] / "db" / "market.sqlite"
 
-
 def get_conn():
     """Ensure DB directory exists and return connection"""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
