@@ -44,8 +44,44 @@ def compute_indicators(df, ema_fast=10, ema_slow=20,
 
     return df
 
-
 def fetch_prices(symbols, start="2024-01-01", interval="1d"):
+    """
+    批量抓取行情数据 + 数据清理 + 指标计算
+    """
+    frames = []
+    # 🔹 批量下载，支持多股票（高效）
+    df_all = yf.download(symbols, start=start, interval=interval, group_by="ticker", threads=True)
+
+    for sym in symbols:
+        try:
+            # 如果是多 symbol，取 df_all[sym]，否则就是单表
+            df = df_all[sym].copy().reset_index() if len(symbols) > 1 else df_all.copy().reset_index()
+        except Exception:
+            print(f"⚠️ {sym} 数据获取失败，跳过")
+            continue
+
+        # 🔹 统一列名
+        df.rename(columns={"Adj Close": "Adj_Close"}, inplace=True)
+
+        # 🔹 核心数据清理步骤
+        df = df.dropna()                           # 去掉 NaN 行
+        df = df.drop_duplicates(subset=["Date"])   # 去掉重复日期
+        df = df.reset_index(drop=True)             # 重置索引
+        for col in ["Open", "High", "Low", "Close", "Adj_Close", "Volume"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # 🔹 加指标
+        df = compute_indicators(df)
+        df["Symbol"] = sym
+        frames.append(df)
+
+    if not frames:
+        return pd.DataFrame()
+
+    return pd.concat(frames, ignore_index=True)
+
+def fetch_prices1(symbols, start="2024-01-01", interval="1d"):
     frames = []
     for sym in symbols:
         df = yf.download(sym, start=start, interval=interval)

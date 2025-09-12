@@ -5,7 +5,6 @@ import pandas as pd
 from src.data_utils import fetch_prices
 from src.data_utils import fetch_rss
 
-
 # 页面配置
 st.set_page_config(page_title="Trading Dashboard", layout="wide")
 st.title("📈 Trading Data Strategy Dashboard with Python")
@@ -14,7 +13,9 @@ st.title("📈 Trading Data Strategy Dashboard with Python")
 symbols = ["AAPL", "TSLA", "NVDA", "JNJ", "KO", "PG", "AMZN", "META", "NFLX"]
 
 # 一次性抓取所有股票数据
-data = fetch_prices(symbols, start="2025-01-01", interval="1d")
+with st.spinner("Loading..."):
+    data = fetch_prices(symbols, start="2024-01-01", interval="1d")
+st.success("✅ Data Loaded")
 
 # 用户选择当前股票（全局唯一）
 sym = st.sidebar.selectbox("Aktien auswählen:", symbols)
