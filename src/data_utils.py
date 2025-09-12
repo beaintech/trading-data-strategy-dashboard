@@ -1,5 +1,8 @@
 import yfinance as yf
 import pandas as pd
+import feedparser
+from src.utils_db import to_sql
+from datetime import datetime, timezone
 
 def compute_indicators(df, ema_fast=10, ema_slow=20,
                        rsi_period=14, bb_period=15, bb_mult=1.5,
@@ -68,3 +71,30 @@ def fetch_prices(symbols, start="2024-01-01", interval="1d"):
         return pd.DataFrame()
 
     return pd.concat(frames, ignore_index=True)
+
+def fetch_rss(feed_url, symbol=None, source="rss"):
+    feed = feedparser.parse(feed_url)
+    rows = []
+    for e in feed.entries:
+        rows.append({
+            "published_at": pd.to_datetime(
+                getattr(e, "published", getattr(e, "updated", datetime.now(timezone.utc)))
+            ),
+            "title": e.title,
+            "url": e.link,   # 👈 建议加上新闻链接
+            "symbol": symbol,
+            "source": source,
+            "sentiment_score": 0   # 以后可以替换成 NLP 情感分数
+        })
+    
+    df = pd.DataFrame(rows)
+
+    # 打印调试信息
+    print(f"✅ {symbol} - Fetched {len(df)} news entries")
+    print(df.head())
+
+    # 存入数据库
+    if not df.empty:
+        to_sql(df, "news")
+
+    return df

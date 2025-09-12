@@ -3,6 +3,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 from src.data_utils import fetch_prices
+from src.data_utils import fetch_rss
+
 
 # 页面配置
 st.set_page_config(page_title="Trading Dashboard", layout="wide")
@@ -26,6 +28,7 @@ menu = st.sidebar.radio(
     ["Preisentwicklung (Candlestick + EMA)",
      "RSI-Signale",
      "Volatilitätsvergleich (ATR)",
+     "Finanznachrichten (RSS)",
      "Zusammenfassung"]
 )
 
@@ -108,7 +111,26 @@ elif menu == "RSI-Signale":
     st.metric("RSI > 70 (Overbought)", overbought)
     st.metric("RSI < 30 (Oversold)", oversold)
 
-# ========== 4. Fazit ==========
+# ========== 4. Finanznachrichten (RSS) ==========
+elif menu == "Finanznachrichten (RSS)":
+    st.markdown("## 📰 Finanznachrichten (RSS)")
+
+    # 抓取某个股票的 RSS（例如雅虎财经 AAPL）
+    rss_df = fetch_rss("https://finance.yahoo.com/rss/headline?s=" + sym, symbol=sym)
+
+    if not rss_df.empty:
+        # 下拉菜单展示新闻标题
+        selected_news = st.selectbox("Wählen Sie eine Nachricht:", rss_df["title"].tolist())
+
+        # 显示选中的新闻详情
+        news_row = rss_df[rss_df["title"] == selected_news].iloc[0]
+        st.write(f"**{news_row['title']}**")
+        st.write(f"📅 {news_row['published_at']}")
+        st.write(f"Sentiment Score: {news_row['sentiment_score']}")
+    else:
+        st.warning("⚠️ Keine Nachrichten verfügbar.")
+
+# ========== 5. Fazit ==========
 elif menu == "Zusammenfassung":
     st.markdown("## 🎯 Fazit")
     st.success("**Technologie-/Wachstumsaktien (AAPL, TSLA, NVDA, AMZN, META, NFLX)** → besser geeignet für Scalping")

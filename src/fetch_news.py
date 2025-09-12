@@ -1,4 +1,3 @@
-# src/fetch_news.py
 import feedparser
 import pandas as pd
 from datetime import datetime, timezone
