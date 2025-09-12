@@ -39,7 +39,7 @@ def compute_indicators(df, ema_fast=10, ema_slow=20,
 
     return df
 
-def fetch_prices(symbols, start="2025-05-01", interval="1d"):
+def fetch_prices(symbols, start="2024-05-01", interval="1d"):
     frames = []
     for sym in symbols:
         print(f"⬇️ Downloading {sym} ...")

@@ -48,33 +48,29 @@ def fetch_prices(symbols, start="2024-01-01", interval="1d"):
     """
     批量抓取行情数据 + 数据清理 + 指标计算
     """
-    frames = []
-    # 🔹 批量下载，支持多股票（高效）
-    df_all = yf.download(symbols, start=start, interval=interval, group_by="ticker", threads=True)
+    df = yf.download(symbols, start=start, interval=interval, group_by="ticker")
 
+    frames = []
     for sym in symbols:
-        try:
-            # 如果是多 symbol，取 df_all[sym]，否则就是单表
-            df = df_all[sym].copy().reset_index() if len(symbols) > 1 else df_all.copy().reset_index()
-        except Exception:
-            print(f"⚠️ {sym} 数据获取失败，跳过")
+        if isinstance(df.columns, pd.MultiIndex):  # 这里的 MultiIndex 没写完整
+            df_sym = df[sym].copy()
+        else:
+            df_sym = df.copy()
+
+        if df_sym.empty:
             continue
 
-        # 🔹 统一列名
-        df.rename(columns={"Adj Close": "Adj_Close"}, inplace=True)
+        df_sym = df_sym.reset_index()
+        df_sym.rename(columns={"Adj Close": "Adj_Close"}, inplace=True)
 
-        # 🔹 核心数据清理步骤
-        df = df.dropna()                           # 去掉 NaN 行
-        df = df.drop_duplicates(subset=["Date"])   # 去掉重复日期
-        df = df.reset_index(drop=True)             # 重置索引
         for col in ["Open", "High", "Low", "Close", "Adj_Close", "Volume"]:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
+            if col in df_sym.columns:
+                df_sym[col] = pd.to_numeric(df_sym[col], errors="coerce")
 
-        # 🔹 加指标
-        df = compute_indicators(df)
-        df["Symbol"] = sym
-        frames.append(df)
+        df_sym = df_sym.dropna().drop_duplicates(subset=["Date"])  # ✅ 清理数据
+        df_sym = compute_indicators(df_sym)
+        df_sym["Symbol"] = sym
+        frames.append(df_sym)
 
     if not frames:
         return pd.DataFrame()

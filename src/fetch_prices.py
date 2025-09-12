@@ -100,5 +100,5 @@ def fetch_prices(symbols, start="2020-01-01", interval="1h"):
 
 if __name__ == "__main__":
     # 測試：EUR/USD 5 分鐘數據（自動限制為最近 60 天）
-    data = fetch_prices(["EURUSD=X"], start="2025-01-01", interval="5m")
+    data = fetch_prices(["EURUSD=X"], start="2024-01-01", interval="5m")
     print('data.tail--', data.tail())

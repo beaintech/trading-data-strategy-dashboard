@@ -21,7 +21,7 @@ def send_email(summary_text):
 
 if __name__ == "__main__":
     # 1. fetch latest data
-    df = fetch_prices(["EURUSD=X","AAPL","MSFT"], interval="5m", start="2025-08-01")
+    df = fetch_prices(["EURUSD=X","AAPL","MSFT"], interval="5m", start="2024-01-01")
 
     # 2. generate trading signals (scalping logic)
     summary_text = generate_signals(df)
