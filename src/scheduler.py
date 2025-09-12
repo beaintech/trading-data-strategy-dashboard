@@ -13,7 +13,7 @@ if __name__ == "__main__":
     job()
 
     # 每天早上 9 点自动跑
-    schedule.every().day.at("18:36").do(job)
+    schedule.every().day.at("09:00").do(job)
 
     # 守护进程
     while True:
