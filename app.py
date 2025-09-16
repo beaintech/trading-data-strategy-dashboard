@@ -4,6 +4,7 @@ import plotly.express as px
 import pandas as pd
 from src.data_utils import fetch_prices
 from src.data_utils import fetch_rss
+from src.fake_users import generate_fake_users
 
 # 页面配置
 st.set_page_config(page_title="Trading Dashboard", layout="wide")
@@ -30,6 +31,7 @@ menu = st.sidebar.radio(
      "RSI-Signale",
      "Volatilitätsvergleich (ATR)",
      "Finanznachrichten (RSS)",
+     "Benutzeranalyse (Fake Users)",
      "Zusammenfassung"]
 )
 
@@ -131,7 +133,34 @@ elif menu == "Finanznachrichten (RSS)":
     else:
         st.warning("⚠️ Keine Nachrichten verfügbar.")
 
-# ========== 5. Fazit ==========
+# ========== 5. Benutzeranalyse (Fake Users) ==========
+elif menu == "Benutzeranalyse (Fake Users)":
+    st.markdown("## 👤 Benutzeranalyse (Fake Users)")
+
+    # 生成 30 个虚拟用户
+    users_df = generate_fake_users(30)
+
+    # 下拉菜单选择用户
+    selected_user = st.selectbox("Wählen Sie einen Benutzer:", users_df["Name"].tolist())
+
+    # 显示用户信息
+    user_row = users_df[users_df["Name"] == selected_user].iloc[0]
+    st.write(f"**Name:** {user_row['Name']}")
+    st.write(f"**Alter:** {user_row['Alter']}")
+    st.write(f"**Geschlecht:** {user_row['Geschlecht']}")
+    st.write(f"**Nationalität:** {user_row['Nationalität']}")
+    st.write(f"**E-Mail:** {user_row['E-Mail']}")
+
+    # 展示整体用户画像（比如性别分布）
+    st.markdown("### 📊 Geschlechterverteilung")
+    gender_fig = px.pie(users_df, names="Geschlecht", title="Geschlechterverteilung")
+    st.plotly_chart(gender_fig, use_container_width=True)
+
+    st.markdown("### 📊 Altersverteilung")
+    age_fig = px.histogram(users_df, x="Alter", nbins=10, title="Altersverteilung")
+    st.plotly_chart(age_fig, use_container_width=True)
+
+# ========== 6. Fazit ==========
 elif menu == "Zusammenfassung":
     st.markdown("## 🎯 Fazit")
     st.success("**Technologie-/Wachstumsaktien (AAPL, TSLA, NVDA, AMZN, META, NFLX)** → besser geeignet für Scalping")
