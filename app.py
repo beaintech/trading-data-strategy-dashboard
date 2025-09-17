@@ -5,6 +5,7 @@ import pandas as pd
 from src.data_utils import fetch_prices
 from src.data_utils import fetch_rss
 from src.fake_users import generate_fake_users
+from src.email_utils import send_email
 
 # 页面配置
 st.set_page_config(page_title="Trading Dashboard", layout="wide")
@@ -137,19 +138,56 @@ elif menu == "Finanznachrichten (RSS)":
 elif menu == "Benutzeranalyse (Fake Users)":
     st.markdown("## 👤 Benutzeranalyse (Fake Users)")
 
-    # 生成 50 个虚拟用户
-    users_df = generate_fake_users(50)
+    # ✅ 只在第一次生成 50 个用户
+    if "users_df" not in st.session_state:
+        st.session_state["users_df"] = generate_fake_users(50)
+    
+    users_df = st.session_state["users_df"]
 
     # 下拉菜单选择用户
     selected_user = st.selectbox("Wählen Sie einen Benutzer:", users_df["Name"].tolist())
 
     # 显示用户信息
     user_row = users_df[users_df["Name"] == selected_user].iloc[0]
+
     st.write(f"**Name:** {user_row['Name']}")
     st.write(f"**Alter:** {user_row['Alter']}")
     st.write(f"**Geschlecht:** {user_row['Geschlecht']}")
     st.write(f"**Nationalität:** {user_row['Nationalität']}")
     st.write(f"**E-Mail:** {user_row['E-Mail']}")
+
+    # ✉️ 发送邮件按钮
+    if st.button("📨 Send Email to This User"):
+        subject = "📊 Finanznachrichten & RSI-Signale"
+        overbought = (df["RSI"] > 70).sum()
+        oversold = (df["RSI"] < 30).sum()
+        rss_df = fetch_rss("https://finance.yahoo.com/rss/headline?s=" + sym, symbol=sym)
+
+        if not rss_df.empty:
+            news_list = "\n".join([f"- {t}" for t in rss_df["title"].head(5)])  # 只取前 5 条
+        else:
+            news_list = "- Keine Nachrichten verfügbar"
+
+        body = f"""
+        Hallo {user_row['Name']},
+
+        Hier sind die neuesten Finanznachrichten und RSI-Signale:
+
+        - RSI > 70: {overbought} Tage
+        - RSI < 30: {oversold} Tage
+
+        📢 Finanznachrichten {sym}:
+            {news_list}
+
+        Viele Grüße,  
+        Trading Dashboard
+        """
+        result = send_email(user_row["E-Mail"], subject, body)
+        if result:
+            with st.expander("✅ Email Content Preview", expanded=True):
+                st.markdown(body)
+        else:
+                st.error(f"❌ Failed to send email to {user_row['E-Mail']}")
 
     # 展示整体用户画像（比如性别分布）
     gender_fig = px.pie(
