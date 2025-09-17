@@ -156,6 +156,9 @@ elif menu == "Benutzeranalyse (Fake Users)":
     st.write(f"**Nationalität:** {user_row['Nationalität']}")
     st.write(f"**E-Mail:** {user_row['E-Mail']}")
 
+    sym = st.selectbox("📈 Wählen Sie eine Aktie für die Nachrichten:", 
+                       ["AAPL", "TSLA", "NVDA", "JNJ", "KO", "PG", "AMZN", "META", "NFLX"])
+
     # ✉️ 发送邮件按钮
     if st.button("📨 Send Email to This User"):
         subject = "📊 Finanznachrichten & RSI-Signale"
@@ -164,14 +167,14 @@ elif menu == "Benutzeranalyse (Fake Users)":
         rss_df = fetch_rss("https://finance.yahoo.com/rss/headline?s=" + sym, symbol=sym)
 
         if not rss_df.empty:
-            news_list = "\n".join([f"- {t}" for t in rss_df["title"].head(5)])  # 只取前 5 条
+            news_list = "\n".join([f"- {t}" for t in rss_df["title"].head(20)])
         else:
             news_list = "- Keine Nachrichten verfügbar"
 
         body = f"""
         Hallo {user_row['Name']},
 
-        Hier sind die neuesten Finanznachrichten und RSI-Signale:
+        Hier sind die neuesten Finanznachrichten und RSI-Signale für {sym}:
 
         - RSI > 70: {overbought} Tage
         - RSI < 30: {oversold} Tage
