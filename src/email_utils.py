@@ -1,9 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
 
-import smtplib
-from email.mime.text import MIMEText
-
 # 发送邮件函数 (直接写在 app.py)
 def send_email(to_email, subject, body):
     SMTP_HOST = "smtp.gmail.com"

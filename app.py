@@ -7,25 +7,45 @@ from src.data_utils import fetch_rss
 from src.fake_users import generate_fake_users
 from src.email_utils import send_email
 
-# 页面配置
 st.set_page_config(page_title="Trading Dashboard", layout="wide")
 st.title("📈 Trading Data Strategy Dashboard with Python")
 
-# Sidebar for stock selection
 symbols = ["AAPL", "TSLA", "NVDA", "JNJ", "KO", "PG", "AMZN", "META", "NFLX"]
 
+def build_email_body(user_row, df, sym):
+    overbought = (df["RSI"] > 70).sum()
+    oversold = (df["RSI"] < 30).sum()
+    rss_df = fetch_rss("https://finance.yahoo.com/rss/headline?s=" + sym, symbol=sym)
+    if not rss_df.empty:
+        news_list = "\n".join([f"- {t}" for t in rss_df["title"].head(15)])
+    else:
+        news_list = "- Keine Nachrichten verfügbar"
+
+    body = f"""
+    Hallo {user_row['Name']},
+
+    Hier sind die neuesten Finanznachrichten und RSI-Signale für {sym}:
+
+    - RSI > 70: {overbought} Tage
+    - RSI < 30: {oversold} Tage
+
+    📢 Finanznachrichten {sym}:
+    {news_list}
+
+    Viele Grüße,  
+    Trading Dashboard
+    """
+    return body
+    
 # 一次性抓取所有股票数据
 with st.spinner("Loading..."):
     data = fetch_prices(symbols, start="2024-01-01", interval="1d")
 st.success("✅ Data Loaded")
 
-# 用户选择当前股票（全局唯一）
 sym = st.sidebar.selectbox("Aktien auswählen:", symbols)
 
-# 当前股票数据
 df = data[data["Symbol"] == sym]
 
-# 左侧菜单
 menu = st.sidebar.radio(
     "Analysebereich auswählen:",
     ["Preisentwicklung (Candlestick + EMA)",
@@ -36,7 +56,7 @@ menu = st.sidebar.radio(
      "Zusammenfassung"]
 )
 
-# ========== 1. 价格走势 ==========
+# 价格走势
 if menu == "Preisentwicklung (Candlestick + EMA)":
     fig = go.Figure(data=[
         go.Candlestick(x=df["Date"],
@@ -51,7 +71,7 @@ if menu == "Preisentwicklung (Candlestick + EMA)":
     fig.update_layout(title=f"📊 Preisentwicklung - {sym}")
     st.plotly_chart(fig, use_container_width=True)
 
-# ========== 2. ATR ==========
+# ATR 
 elif menu == "Volatilitätsvergleich (ATR)":
     # === 平均 ATR & RSI ===
     atr_summary = data.groupby("Symbol")["ATR"].mean().reset_index()
@@ -101,7 +121,7 @@ elif menu == "Volatilitätsvergleich (ATR)":
     st.dataframe(summary)
 
 
-# ========== 3. RSI ==========
+# RSI
 elif menu == "RSI-Signale":
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df["Date"], y=df["RSI"], mode="lines", name="RSI"))
@@ -115,18 +135,15 @@ elif menu == "RSI-Signale":
     st.metric("RSI > 70 (Overbought)", overbought)
     st.metric("RSI < 30 (Oversold)", oversold)
 
-# ========== 4. Finanznachrichten (RSS) ==========
+# Finanznachrichten (RSS) 
 elif menu == "Finanznachrichten (RSS)":
     st.markdown("## 📰 Finanznachrichten (RSS)")
 
-    # 抓取某个股票的 RSS（例如雅虎财经 AAPL）
     rss_df = fetch_rss("https://finance.yahoo.com/rss/headline?s=" + sym, symbol=sym)
 
     if not rss_df.empty:
-        # 下拉菜单展示新闻标题
         selected_news = st.selectbox("Wählen Sie eine Nachricht:", rss_df["title"].tolist())
 
-        # 显示选中的新闻详情
         news_row = rss_df[rss_df["title"] == selected_news].iloc[0]
         st.write(f"**{news_row['title']}**")
         st.write(f"📅 {news_row['published_at']}")
@@ -134,20 +151,17 @@ elif menu == "Finanznachrichten (RSS)":
     else:
         st.warning("⚠️ Keine Nachrichten verfügbar.")
 
-# ========== 5. Benutzeranalyse (Fake Users) ==========
+#  Benutzeranalyse (Fake Users) 
 elif menu == "Benutzeranalyse (Fake Users)":
     st.markdown("## 👤 Benutzeranalyse (Fake Users)")
 
-    # ✅ 只在第一次生成 50 个用户
     if "users_df" not in st.session_state:
         st.session_state["users_df"] = generate_fake_users(50)
     
     users_df = st.session_state["users_df"]
 
-    # 下拉菜单选择用户
     selected_user = st.selectbox("Wählen Sie einen Benutzer:", users_df["Name"].tolist())
 
-    # 显示用户信息
     user_row = users_df[users_df["Name"] == selected_user].iloc[0]
 
     st.write(f"**Name:** {user_row['Name']}")
@@ -159,40 +173,16 @@ elif menu == "Benutzeranalyse (Fake Users)":
     sym = st.selectbox("📈 Wählen Sie eine Aktie für die Nachrichten:", 
                        ["AAPL", "TSLA", "NVDA", "JNJ", "KO", "PG", "AMZN", "META", "NFLX"])
 
-    # ✉️ 发送邮件按钮
     if st.button("📨 Send Email to This User"):
-        subject = "📊 Finanznachrichten & RSI-Signale"
-        overbought = (df["RSI"] > 70).sum()
-        oversold = (df["RSI"] < 30).sum()
-        rss_df = fetch_rss("https://finance.yahoo.com/rss/headline?s=" + sym, symbol=sym)
-
-        if not rss_df.empty:
-            news_list = "\n".join([f"- {t}" for t in rss_df["title"].head(20)])
-        else:
-            news_list = "- Keine Nachrichten verfügbar"
-
-        body = f"""
-        Hallo {user_row['Name']},
-
-        Hier sind die neuesten Finanznachrichten und RSI-Signale für {sym}:
-
-        - RSI > 70: {overbought} Tage
-        - RSI < 30: {oversold} Tage
-
-        📢 Finanznachrichten {sym}:
-            {news_list}
-
-        Viele Grüße,  
-        Trading Dashboard
-        """
+        subject = f"📊 Finanznachrichten & RSI-Signale für {sym}"
+        body = build_email_body(user_row, df, sym)
         result = send_email(user_row["E-Mail"], subject, body)
         if result:
             with st.expander("✅ Email Content Preview", expanded=True):
                 st.markdown(body)
         else:
-                st.error(f"❌ Failed to send email to {user_row['E-Mail']}")
+            st.error(f"❌ Failed to send email to {user_row['E-Mail']}")
 
-    # 展示整体用户画像（比如性别分布）
     gender_fig = px.pie(
         users_df,
         names="Geschlecht",
@@ -202,13 +192,11 @@ elif menu == "Benutzeranalyse (Fake Users)":
     )
     st.plotly_chart(gender_fig, use_container_width=True)
 
-    # 年龄分组（保持之前的 bins 和 labels）
     bins = [0, 30, 40, 50, 60, 70, 80, 120]
     labels = ["18-30", "31-40", "41-50", "51-60", "61-70", "71-80", "80+"]
 
     users_df["AgeGroup"] = pd.cut(users_df["Alter"], bins=bins, labels=labels, right=True)
 
-    # --- 正确的年龄组分布图 ---
     age_group_counts = users_df["AgeGroup"].value_counts().sort_index()
 
     age_fig = px.bar(
@@ -230,7 +218,7 @@ elif menu == "Benutzeranalyse (Fake Users)":
 
     st.plotly_chart(age_fig, use_container_width=True)
 
-# ========== 6. Fazit ==========
+# Fazit 
 elif menu == "Zusammenfassung":
     st.markdown("## 🎯 Fazit")
     st.success("**Technologie-/Wachstumsaktien (AAPL, TSLA, NVDA, AMZN, META, NFLX)** → besser geeignet für Scalping")
@@ -238,3 +226,14 @@ elif menu == "Zusammenfassung":
 
     st.write("👇 Letzte Daten (zur Kontrolle):")
     st.write(df.tail())
+
+
+def run_email_job(users_df, data, symbols):
+    for _, user_row in users_df.iterrows():
+        for sym in symbols:
+            df = data[data["Symbol"] == sym]
+            if df.empty:
+                continue
+            subject = f"📊 Finanznachrichten & RSI-Signale für {sym}"
+            body = build_email_body(user_row, df, sym)
+            send_email(user_row["E-Mail"], subject, body)
