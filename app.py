@@ -137,8 +137,8 @@ elif menu == "Finanznachrichten (RSS)":
 elif menu == "Benutzeranalyse (Fake Users)":
     st.markdown("## 👤 Benutzeranalyse (Fake Users)")
 
-    # 生成 30 个虚拟用户
-    users_df = generate_fake_users(30)
+    # 生成 50 个虚拟用户
+    users_df = generate_fake_users(50)
 
     # 下拉菜单选择用户
     selected_user = st.selectbox("Wählen Sie einen Benutzer:", users_df["Name"].tolist())
@@ -152,12 +152,41 @@ elif menu == "Benutzeranalyse (Fake Users)":
     st.write(f"**E-Mail:** {user_row['E-Mail']}")
 
     # 展示整体用户画像（比如性别分布）
-    st.markdown("### 📊 Geschlechterverteilung")
-    gender_fig = px.pie(users_df, names="Geschlecht", title="Geschlechterverteilung")
+    gender_fig = px.pie(
+        users_df,
+        names="Geschlecht",
+        title="📊 Geschlechterverteilung",
+        color="Geschlecht",
+        color_discrete_map={"Männlich": "#4F81BD", "Weiblich": "#C0504D"}
+    )
     st.plotly_chart(gender_fig, use_container_width=True)
 
-    st.markdown("### 📊 Altersverteilung")
-    age_fig = px.histogram(users_df, x="Alter", nbins=10, title="Altersverteilung")
+    # 年龄分组（保持之前的 bins 和 labels）
+    bins = [0, 30, 40, 50, 60, 70, 80, 120]
+    labels = ["18-30", "31-40", "41-50", "51-60", "61-70", "71-80", "80+"]
+
+    users_df["AgeGroup"] = pd.cut(users_df["Alter"], bins=bins, labels=labels, right=True)
+
+    # --- 正确的年龄组分布图 ---
+    age_group_counts = users_df["AgeGroup"].value_counts().sort_index()
+
+    age_fig = px.bar(
+        age_group_counts,
+        x=age_group_counts.index,
+        y=age_group_counts.values,
+        title="📊 Altersverteilung nach Altersgruppen",
+        color=age_group_counts.index,
+        color_discrete_map={
+            "18-30": "#4F81BD",  # muted blue
+            "31-40": "#C0504D",  # muted red
+            "41-50": "#9BBB59",  # muted green
+            "51-60": "#8064A2",  # muted purple
+            "61-70": "#4BACC6",  # teal
+            "71-80": "#F79646",  # soft orange
+            "80+":   "#7F7F7F"   # gray
+        }
+    )
+
     st.plotly_chart(age_fig, use_container_width=True)
 
 # ========== 6. Fazit ==========
